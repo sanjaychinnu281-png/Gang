@@ -61,13 +61,13 @@ class BotState:
         self.logs: List[Dict[str, Any]] = []
         self.max_logs = 200
         self.total_matches = 0
-        self.total_matches_started = 0      # 🔥 NEW
+        self.total_matches_started = 0
         self.total_gained_exp = 0
         self.start_time = time.time()
         self.account_workers: Dict[str, asyncio.Task] = {}
-        self.account_token_map: Dict[str, str] = {}  # uid -> token or token_prefix -> uid
-        self.auth_to_game_id: Dict[str, str] = {}   # guest login uid -> in-game account id
-        self.game_to_auth_id: Dict[str, str] = {}   # in-game account id -> guest login uid
+        self.account_token_map: Dict[str, str] = {}
+        self.auth_to_game_id: Dict[str, str] = {}
+        self.game_to_auth_id: Dict[str, str] = {}
         self.paused_accounts: set = set()
         self.refresh_callbacks: Dict[str, Any] = {}
         self.account_credentials: Dict[str, Dict[str, Any]] = {}
@@ -416,7 +416,7 @@ async def handle_get_stats(request: web.Request) -> web.Response:
     return web.json_response({
         "total_accounts": len(bot_state.accounts),
         "total_matches": bot_state.total_matches,
-        "total_matches_started": bot_state.total_matches_started,   # 🔥 NEW
+        "total_matches_started": bot_state.total_matches_started,
         "total_active_matches": total_active_matches,
         "total_gained_exp": total_gained,
         "exp_per_hour": exp_per_hour,
@@ -708,7 +708,12 @@ async def handle_toggle_pause_all(request: web.Request) -> web.Response:
         return web.json_response({"status": "error", "error": str(e)})
 
 
-async def start_web_dashboard(host: str = "0.0.0.0", port: int = 5000):
+async def start_web_dashboard(host: str = "0.0.0.0", port: int = None):
+    # 🔥 Railway dynamically assigns a PORT env variable.
+    # If port is not provided, read from env, fallback to 8080.
+    if port is None:
+        port = int(os.environ.get("PORT", 8080))
+
     app = web.Application()
     app.router.add_get("/", handle_index)
     app.router.add_get("/api/stats", handle_get_stats)
@@ -724,4 +729,5 @@ async def start_web_dashboard(host: str = "0.0.0.0", port: int = 5000):
     await runner.setup()
     site = web.TCPSite(runner, host, port)
     await site.start()
+    print(f"✅ Web Dashboard started on http://{host}:{port}")
     return runner
